@@ -49,7 +49,7 @@ public class RegisterActivity extends AppCompatActivity {
                 if (nombre.isEmpty() || apellidos.isEmpty() || correo.isEmpty() || contraseña.isEmpty()) {
                     Toast.makeText(RegisterActivity.this, "Por favor, complete todos los campos", Toast.LENGTH_SHORT).show();
                 } else {
-                    ejecutarServicio("http://192.168.1.245:80/Burela/insertar_usuario.php");
+                    ejecutarServicio("http://192.168.1.64:80/Burela/insertar_usuario.php");
 
                     Toast.makeText(RegisterActivity.this, "Registrando usuario...", Toast.LENGTH_SHORT).show();
                 }

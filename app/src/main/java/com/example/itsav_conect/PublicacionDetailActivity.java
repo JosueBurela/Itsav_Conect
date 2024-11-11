@@ -1,7 +1,9 @@
 package com.example.itsav_conect;
 
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -12,11 +14,13 @@ import android.widget.VideoView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.bumptech.glide.Glide;
 
@@ -25,10 +29,9 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
-
-import okhttp3.ResponseBody;
-import retrofit2.Call;
+import java.util.Map;
 
 public class PublicacionDetailActivity extends AppCompatActivity {
 
@@ -39,8 +42,8 @@ public class PublicacionDetailActivity extends AppCompatActivity {
     private VideoView archivoVideoView;
     private EditText comentarioEditText;
     private Button publicarButton;
-    private int publicacionId; // ID de publicación
-    private int usuarioId = 123; // Asigna el ID de usuario aquí o recíbelo desde el Intent
+    private int publicacionId; // ID de la publicación a obtener
+    private String usuarioId; // ID de usuario recuperado de SharedPreferences
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +58,10 @@ public class PublicacionDetailActivity extends AppCompatActivity {
         comentarioEditText = findViewById(R.id.comentarioEditText);
         publicarButton = findViewById(R.id.publicarButton);
 
+        // Obtener el ID de usuario desde SharedPreferences
+        SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        usuarioId = preferences.getString("id_usuario", null); // Aquí obtenemos el "id_usuario"
+
         publicacionId = getIntent().getIntExtra("publicacion_id", -1);
         if (publicacionId != -1) {
             buscarPublicacion(publicacionId);
@@ -62,45 +69,29 @@ public class PublicacionDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "ID de publicación no válido", Toast.LENGTH_SHORT).show();
         }
 
-        // Configurar el evento del botón publicar
+        // Evento del botón publicar
         publicarButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Capturar el comentario ingresado
                 String comentario = comentarioEditText.getText().toString();
-                if (comentario.isEmpty()) {
-                    Toast.makeText(PublicacionDetailActivity.this, "Por favor, escribe un comentario", Toast.LENGTH_SHORT).show();
+
+                // Obtener la fecha del dispositivo (formato "dd MM yyyy")
+                SimpleDateFormat sdf = new SimpleDateFormat("dd MM yyyy", Locale.getDefault());
+                String fecha = sdf.format(new Date());
+
+                // Enviar los datos al servidor
+                if (!comentario.isEmpty()) {
+                    publicarComentario(usuarioId, comentario, fecha);
                 } else {
-                    String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
-                    agregarComentario(publicacionId, usuarioId, comentario, fecha);
+                    Toast.makeText(PublicacionDetailActivity.this, "Por favor ingrese un comentario", Toast.LENGTH_SHORT).show();
                 }
-            }
-        });
-    }
-
-    private void agregarComentario(int publicacionId, int usuarioId, String comentario, String fecha) {
-        ApiService apiService = ApiClient.getClient().create(ApiService.class);
-        Call<ResponseBody> call = apiService.agregarComentario(publicacionId, usuarioId, comentario, fecha);
-
-        call.enqueue(new retrofit2.Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, retrofit2.Response<ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(PublicacionDetailActivity.this, "Comentario agregado", Toast.LENGTH_SHORT).show();
-                    comentarioEditText.setText(""); // Limpiar el campo de texto
-                } else {
-                    Toast.makeText(PublicacionDetailActivity.this, "Error al agregar comentario", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Toast.makeText(PublicacionDetailActivity.this, "Error en la conexión", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void buscarPublicacion(int publicacionId) {
-        String url = "http://192.168.1.245:80/Burela/buscar_publicacion.php?id=" + publicacionId;
+        String url = "http://192.168.1.64:80/Burela/buscar_publicacion.php?id=" + publicacionId;
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
@@ -142,7 +133,7 @@ public class PublicacionDetailActivity extends AppCompatActivity {
     }
 
     private void mostrarArchivo(String archivo) {
-        String urlArchivo = "http://192.168.1.245:80/Burela/" + archivo;
+        String urlArchivo = "http://192.168.1.64:80/Burela/" + archivo;
 
         if (archivo != null && !archivo.isEmpty()) {
             if (archivo.endsWith(".jpg") || archivo.endsWith(".jpeg") || archivo.endsWith(".png") || archivo.endsWith(".webp")) {
@@ -173,4 +164,63 @@ public class PublicacionDetailActivity extends AppCompatActivity {
             archivoVideoView.setVisibility(View.GONE);
         }
     }
+
+    private void publicarComentario(String idUsuario, String comentario, String fecha) {
+        String url = "http://192.168.1.64:80/Burela/comentar.php";
+
+        // Verificar los datos antes de enviarlos
+        Log.d("PublicarComentario", "idUsuario: " + idUsuario);
+        Log.d("PublicarComentario", "comentario: " + comentario);
+        Log.d("PublicarComentario", "fecha: " + fecha);
+
+        // Crear una solicitud POST usando StringRequest
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            // Intentamos parsear la respuesta como JSON
+                            try {
+                                JSONObject jsonResponse = new JSONObject(response);
+                                String status = jsonResponse.getString("status");
+                                if (status.equals("success")) {
+                                    Toast.makeText(PublicacionDetailActivity.this, "Comentario publicado exitosamente", Toast.LENGTH_SHORT).show();
+                                    comentarioEditText.setText("");
+                                } else {
+                                    Toast.makeText(PublicacionDetailActivity.this, "Error al publicar el comentario", Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (JSONException e) {
+                                // Si la respuesta no es un JSON, la tratamos como texto plano
+                                Toast.makeText(PublicacionDetailActivity.this, response, Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Toast.makeText(PublicacionDetailActivity.this, "Error al procesar la respuesta", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e("VolleyError", error.toString());
+                        Toast.makeText(PublicacionDetailActivity.this, "Error en la conexión", Toast.LENGTH_SHORT).show();
+                    }
+                }) {
+
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                // Crear el mapa de parámetros
+                Map<String, String> parametros = new HashMap<>();
+                parametros.put("idUsuario", idUsuario);
+                parametros.put("comentario", comentario);
+                parametros.put("fecha", fecha);
+                return parametros;
+            }
+        };
+
+        // Crear la cola de solicitudes y agregar la solicitud
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        requestQueue.add(stringRequest);
+    }
+
 }

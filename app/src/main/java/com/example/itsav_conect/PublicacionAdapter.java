@@ -41,7 +41,7 @@ public class PublicacionAdapter extends RecyclerView.Adapter<PublicacionAdapter.
         holder.descripcionTextView.setText(publicacion.getDescripcion());
 
         // Generar la URL del archivo
-        String urlArchivo = "http://192.168.1.245:80/Burela/" + publicacion.getArchivo();
+        String urlArchivo = "http://192.168.1.64:80/Burela/" + publicacion.getArchivo();
 
         if (urlArchivo != null && !urlArchivo.isEmpty()) {
             // Comprobar la extensión del archivo para determinar cómo mostrarlo

@@ -32,11 +32,11 @@ public interface ApiService {
     @GET("Burela/buscar_publicacion.php") // Cambia esto según tu estructura de API
     Call<Publicacion> getPublicacionPorId(@Query("id") int id); // Este método ya está bien
 
+    // Método para enviar el comentario
     @FormUrlEncoded
-    @POST("Burela/comentar.php")
+    @POST("Burela/comentar.php") // Cambia esto a la URL correcta del script PHP
     Call<ResponseBody> agregarComentario(
-            @Field("publicacion_id") int publicacionId,
-            @Field("usuario_id") int usuarioId,
+            @Field("idUsuario") int idUsuario,
             @Field("comentario") String comentario,
             @Field("fecha") String fecha
     );

@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
                 if (email.isEmpty() || password.isEmpty()) {
                     Toast.makeText(MainActivity.this, "Por favor, complete ambos campos", Toast.LENGTH_SHORT).show();
                 } else {
-                    iniciarSesion("http://192.168.1.245:80/Burela/login_usuario.php");  // Cambia esta URL según sea necesario
+                    iniciarSesion("http://192.168.1.64:80/Burela/login_usuario.php");  // Cambia esta URL según sea necesario
                 }
             }
         });
@@ -70,17 +70,20 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("LoginResponse", "Respuesta del servidor: " + response);
 
                 if (response.contains("success")) {
-                    // Separar el "success" del nombre del usuario
+                    // Suponiendo que la respuesta es algo como: success,1,usuario
                     String[] parts = response.split(",");
-                    String nombreUsuario = parts[1];  // El nombre del usuario viene después de "success,"
+                    String idUsuario = parts[1];  // El ID del usuario es el segundo valor en la respuesta
+                    String nombreUsuario = parts[2];  // El nombre del usuario es el tercer valor
 
-                    // Almacenar el nombre del usuario en SharedPreferences
+                    // Almacenar el id_usuario y nombre_usuario en SharedPreferences
                     SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
                     SharedPreferences.Editor editor = preferences.edit();
+                    editor.putString("id_usuario", idUsuario);
                     editor.putString("nombre_usuario", nombreUsuario);
                     editor.apply();
 
-                    // Verificar el nombre de usuario almacenado
+                    // Verificar el id_usuario almacenado
+                    Log.d("SharedPreferences", "ID de usuario almacenado: " + idUsuario);
                     Log.d("SharedPreferences", "Nombre de usuario almacenado: " + nombreUsuario);
 
                     // Continuar a la siguiente pantalla (HomeActivity)
@@ -110,4 +113,5 @@ public class MainActivity extends AppCompatActivity {
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
     }
+
 }
